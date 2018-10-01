@@ -13,7 +13,7 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
  */
 class Hydrator
 {
-    const SEO_FILTERS_DELIMITER = '__';
+    const SEO_FILTERS_DELIMITER = '/';
 
     const SEO_FILTER_CODE_DELIMITER = '-';
 
@@ -54,8 +54,7 @@ class Hydrator
         StoreManagerInterface $storeManager,
         \Magento\Framework\Registry $registry,
         Translit $translitFilter
-    )
-    {
+    ) {
         $this->_attrOptionCollectionFactory = $attrOptionCollectionFactory;
         $this->categoryCollectionFactory = $categoryCollectionFactory;
         $this->attributeList = $attributeList;
@@ -71,9 +70,9 @@ class Hydrator
      * @param string $url
      * @return array
      */
-    public function extract($url)
+    public function extract($byAttribute, $url)
     {
-        $byAttribute = explode(self::SEO_FILTERS_DELIMITER, $this->getFilterString($url));
+        $byAttribute = $byAttribute;
         $data = [];
         foreach ($byAttribute as $attributeString) {
             preg_match('/[^-]*/', $attributeString, $match);
@@ -91,6 +90,7 @@ class Hydrator
             }
             $options = $this->getOptions($attributeCode);
             $data[$attributeCode] = [];
+            $flagWrongValues = false;
             foreach ($attributeValues as $value) {
                 if ($attribute && $attribute->getBackendType() == 'decimal') {
                     $data[$attributeCode][] = str_replace('_', '-', $value);
@@ -99,7 +99,13 @@ class Hydrator
                 $id = array_search($value, $options);
                 if ($id !== false) {
                     $data[$attributeCode][] = $id;
+                } else {
+                    $flagWrongValues = true;
                 }
+            }
+
+            if (empty($data[$attributeCode]) || $flagWrongValues === true) {
+                return array();
             }
         }
         return $data;

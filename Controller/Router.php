@@ -18,6 +18,12 @@ class Router extends \Magento\UrlRewrite\Controller\Router implements \Magento\F
     /** @var \Magento\Framework\Registry  */
     protected $registry;
 
+    /** @var int */
+    protected $maxInteration = 3;
+
+    /** @var array */
+    protected $storageFilters = array();
+
     /**
      * @param \Magento\Framework\App\ActionFactory $actionFactory
      * @param \Magento\Framework\UrlInterface $url
@@ -35,8 +41,7 @@ class Router extends \Magento\UrlRewrite\Controller\Router implements \Magento\F
         UrlFinderInterface $urlFinder,
         Hydrator $urlHydrator,
         \Magento\Framework\Registry $registry
-    )
-    {
+    ) {
         $this->urlHydrator = $urlHydrator;
         $this->registry = $registry;
         parent::__construct($actionFactory, $url, $storeManager, $response, $urlFinder);
@@ -51,6 +56,7 @@ class Router extends \Magento\UrlRewrite\Controller\Router implements \Magento\F
     public function match(\Magento\Framework\App\RequestInterface $request)
     {
         $parentMatch = parent::match($request);
+
         if ($parentMatch !== null) {
             $request->setAlias(
                 Builder::REWRITE_NAVIGATION_PATH_ALIAS,
@@ -59,10 +65,23 @@ class Router extends \Magento\UrlRewrite\Controller\Router implements \Magento\F
             return $parentMatch;
         }
 
-        $filterString = '/' . $this->urlHydrator->getFilterString($request->getPathInfo());
-        $originalPath = preg_replace('%' . $filterString . '(?!.*' . $filterString . '.*)%', '', $request->getPathInfo());
+        $this->maxInteration = substr_count($request->getPathInfo(), "/") - 1;
+        $_requestPathInfo = $request->getPathInfo();
 
-        $rewrite = $this->getRewrite($originalPath, $this->storeManager->getStore()->getId());
+        do {
+            $filterString = '/' . $this->urlHydrator->getFilterString($_requestPathInfo);
+            $originalPath = preg_replace('%' . $filterString . '(?!.*' . $filterString . '.*)%', '', $_requestPathInfo);
+            
+            $rewrite = $this->getRewrite($originalPath, $this->storeManager->getStore()->getId());
+
+            if ($rewrite && $rewrite->getRedirectType()) {
+                return $this->processRedirect($request, $rewrite);
+            }
+
+            $this->storageFilters[] = ltrim($filterString, '/');
+            $_requestPathInfo = $originalPath;
+        } while ($this->maxInteration-- > 1 && !$rewrite);
+        
         if ($rewrite === null) {
             return null;
         }
@@ -71,7 +90,8 @@ class Router extends \Magento\UrlRewrite\Controller\Router implements \Magento\F
         }
 
         $this->registry->register('current_category_id', $rewrite->getEntityId());
-        $filterParams = $this->urlHydrator->extract($request->getPathInfo());
+        $filterParams = $this->urlHydrator->extract($this->storageFilters, $_requestPathInfo);
+
         if (empty($filterParams)) {
             return null;
         }
