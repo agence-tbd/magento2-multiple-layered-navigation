@@ -1,5 +1,7 @@
 <?xml version="1.0"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <preference for="Magento\LayeredNavigation\Block\Navigation" type="Niks\LayeredNavigation\Block\LayeredNavigation\Navigation" />
+
     <virtualType name="categoryFilterList" type="Magento\Catalog\Model\Layer\FilterList">
         <arguments>
             <argument name="filters" xsi:type="array">
@@ -97,6 +99,4 @@
             <argument name="algorithm" xsi:type="object">Niks\LayeredNavigation\Model\Search\Dynamic\Algorithm</argument>
         </arguments>
     </type>
-    
-    <preference for="Magento\LayeredNavigation\Block\Navigation" type="Niks\LayeredNavigation\Block\LayeredNavigation\Navigation" />
 </config>

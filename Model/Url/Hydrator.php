@@ -152,8 +152,15 @@ class Hydrator
         }
 
         ksort($data);
+
+        $_values =  [];
+        foreach ($data as $code => $value) {
+            foreach ($value as $label) {
+                $_values[] = ucwords($label);
+            }
+        }
         
-        return $data;
+        return $_values;
     }
 
     /**
@@ -311,7 +318,7 @@ class Hydrator
      */
     public function getStoreName()
     {
-        return $this->_scopeConfig->getValue(
+        return $this->scopeConfig->getValue(
             'general/store_information/name',
             \Magento\Store\Model\ScopeInterface::SCOPE_STORE
         );
@@ -326,7 +333,9 @@ class Hydrator
         if (!empty($valuesLabels)) {
             $labels = implode(" ", $valuesLabels);
             $categoryTitle = $category->getMetaTitle() ? $category->getMetaTitle() : $category->getName();
-            return $categoryTitle . ' ' . $valuesLabels . ' | ' . $this->getStoreName();
+            $suffixStore = $this->getStoreName() ? ' | ' . $this->getStoreName() : "";
+
+            return $categoryTitle . ' ' . $labels . $suffixStore;
         }
         return false;
     }
