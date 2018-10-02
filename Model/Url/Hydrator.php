@@ -96,6 +96,7 @@ class Hydrator
                     $data[$attributeCode][] = str_replace('_', '-', $value);
                     continue;
                 }
+                
                 $id = array_search($value, $options);
                 if ($id !== false) {
                     $data[$attributeCode][] = $id;
@@ -108,6 +109,50 @@ class Hydrator
                 return array();
             }
         }
+        return $data;
+    }
+
+    /**
+     * Extract filters Values to use on title
+     *
+     * @param string $url
+     * @return array
+     */
+    public function extractValues($byAttribute)
+    {
+        $byAttribute = $byAttribute;
+        $data = [];
+        foreach ($byAttribute as $attributeString) {
+            preg_match('/[^-]*/', $attributeString, $match);
+            if (empty($match)) {
+                continue;
+            }
+            $attributeCode = $match[0];
+            $attributeValues = explode(
+                self::SEO_FILTER_VALUES_DELIMITER,
+                preg_replace('/' . $attributeCode . self::SEO_FILTER_CODE_DELIMITER . '/', '', $attributeString, 1)
+            );
+            $attribute = $this->getAttribute($attributeCode);
+            if (!$attribute && $attributeCode != 'cat') {
+                continue;
+            }
+            
+            $data[$attributeCode] = [];
+            foreach ($attributeValues as $value) {
+                if ($attribute && $attribute->getBackendType() == 'decimal') {
+                    $data[$attributeCode][] = str_replace('_', '-', $value);
+                    continue;
+                }
+                $data[$attributeCode][] = $value;
+            }
+        }
+
+        if (isset($data['price'])) {
+            unset($data['price']);
+        }
+
+        ksort($data);
+        
         return $data;
     }
 
@@ -259,5 +304,30 @@ class Hydrator
             \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
             $this->storeManager->getStore()->getId()
         );
+    }
+
+    /**
+     * Get store name
+     */
+    public function getStoreName()
+    {
+        return $this->_scopeConfig->getValue(
+            'general/store_information/name',
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+        );
+    }
+
+    /**
+     * Generate Title with Filters Value
+     */
+    public function getCustomPageTitle($filtersValues, $category)
+    {
+        $valuesLabels = $this->extractValues($filtersValues);
+        if (!empty($valuesLabels)) {
+            $labels = implode(" ", $valuesLabels);
+            $categoryTitle = $category->getMetaTitle() ? $category->getMetaTitle() : $category->getName();
+            return $categoryTitle . ' ' . $valuesLabels . ' | ' . $this->getStoreName();
+        }
+        return false;
     }
 }

@@ -97,4 +97,6 @@
             <argument name="algorithm" xsi:type="object">Niks\LayeredNavigation\Model\Search\Dynamic\Algorithm</argument>
         </arguments>
     </type>
+    
+    <preference for="Magento\LayeredNavigation\Block\Navigation" type="Niks\LayeredNavigation\Block\LayeredNavigation\Navigation" />
 </config>

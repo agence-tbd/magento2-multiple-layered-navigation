@@ -91,10 +91,12 @@ class Router extends \Magento\UrlRewrite\Controller\Router implements \Magento\F
 
         $this->registry->register('current_category_id', $rewrite->getEntityId());
         $filterParams = $this->urlHydrator->extract($this->storageFilters, $_requestPathInfo);
-
+        
         if (empty($filterParams)) {
             return null;
         }
+        
+        $request->setParam('custom_rewrite_url_filters_values', $this->storageFilters);
         $request->setParam('navigation_filters', $filterParams);
         $request->setAlias(UrlInterface::REWRITE_REQUEST_PATH_ALIAS, ltrim($request->getPathInfo(), '/'));
         $request->setAlias(Builder::REWRITE_NAVIGATION_PATH_ALIAS, $rewrite->getRequestPath());
