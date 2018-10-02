@@ -19,6 +19,8 @@ class Hydrator
 
     const SEO_FILTER_VALUES_DELIMITER = '--';
 
+    const SEO_TITLE_SUFFIX_SEPARATOR = ' | ';
+
     /** @var CollectionFactory  */
     protected $_attrOptionCollectionFactory;
 
@@ -327,13 +329,13 @@ class Hydrator
     /**
      * Generate Title with Filters Value
      */
-    public function getCustomPageTitle($filtersValues, $category)
+    public function getCustomPageTitle($filtersValues, $category, $suffix = true)
     {
         $valuesLabels = $this->extractValues($filtersValues);
         if (!empty($valuesLabels)) {
             $labels = implode(" ", $valuesLabels);
             $categoryTitle = $category->getMetaTitle() ? $category->getMetaTitle() : $category->getName();
-            $suffixStore = $this->getStoreName() ? ' | ' . $this->getStoreName() : "";
+            $suffixStore = $this->getStoreName() && $suffix === true ? self::SEO_TITLE_SUFFIX_SEPARATOR . $this->getStoreName() : "";
 
             return $categoryTitle . ' ' . $labels . $suffixStore;
         }

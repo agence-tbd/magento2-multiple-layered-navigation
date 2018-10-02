@@ -67,6 +67,11 @@ class Navigation extends \Magento\LayeredNavigation\Block\Navigation
                 $category = $this->_registry->registry('current_category');
                 if ($newTitle = $this->urlHydrator->getCustomPageTitle($filtersValues, $category)) {
                     $this->_pageConfig->getTitle()->set($newTitle);
+                    if ($this->getLayout()->getBlock('page.main.title')) {
+                        $this->getLayout()->getBlock('page.main.title')->setPageTitle(
+                            $this->urlHydrator->getCustomPageTitle($filtersValues, $category, false)
+                        );
+                    }
                 }
             }
         }
