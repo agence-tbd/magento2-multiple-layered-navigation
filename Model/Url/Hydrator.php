@@ -13,11 +13,13 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
  */
 class Hydrator
 {
-    const SEO_FILTERS_DELIMITER = '__';
+    const SEO_FILTERS_DELIMITER = '/';
 
     const SEO_FILTER_CODE_DELIMITER = '-';
 
     const SEO_FILTER_VALUES_DELIMITER = '--';
+
+    const SEO_TITLE_SUFFIX_SEPARATOR = ' | ';
 
     /** @var CollectionFactory  */
     protected $_attrOptionCollectionFactory;
@@ -54,8 +56,7 @@ class Hydrator
         StoreManagerInterface $storeManager,
         \Magento\Framework\Registry $registry,
         Translit $translitFilter
-    )
-    {
+    ) {
         $this->_attrOptionCollectionFactory = $attrOptionCollectionFactory;
         $this->categoryCollectionFactory = $categoryCollectionFactory;
         $this->attributeList = $attributeList;
@@ -71,9 +72,9 @@ class Hydrator
      * @param string $url
      * @return array
      */
-    public function extract($url)
+    public function extract($byAttribute, $url)
     {
-        $byAttribute = explode(self::SEO_FILTERS_DELIMITER, $this->getFilterString($url));
+        $byAttribute = $byAttribute;
         $data = [];
         foreach ($byAttribute as $attributeString) {
             preg_match('/[^-]*/', $attributeString, $match);
@@ -91,18 +92,77 @@ class Hydrator
             }
             $options = $this->getOptions($attributeCode);
             $data[$attributeCode] = [];
+            $flagWrongValues = false;
             foreach ($attributeValues as $value) {
                 if ($attribute && $attribute->getBackendType() == 'decimal') {
                     $data[$attributeCode][] = str_replace('_', '-', $value);
                     continue;
                 }
+                
                 $id = array_search($value, $options);
                 if ($id !== false) {
                     $data[$attributeCode][] = $id;
+                } else {
+                    $flagWrongValues = true;
                 }
+            }
+
+            if (empty($data[$attributeCode]) || $flagWrongValues === true) {
+                return array();
             }
         }
         return $data;
+    }
+
+    /**
+     * Extract filters Values to use on title
+     *
+     * @param string $url
+     * @return array
+     */
+    public function extractValues($byAttribute)
+    {
+        $byAttribute = $byAttribute;
+        $data = [];
+        foreach ($byAttribute as $attributeString) {
+            preg_match('/[^-]*/', $attributeString, $match);
+            if (empty($match)) {
+                continue;
+            }
+            $attributeCode = $match[0];
+            $attributeValues = explode(
+                self::SEO_FILTER_VALUES_DELIMITER,
+                preg_replace('/' . $attributeCode . self::SEO_FILTER_CODE_DELIMITER . '/', '', $attributeString, 1)
+            );
+            $attribute = $this->getAttribute($attributeCode);
+            if (!$attribute && $attributeCode != 'cat') {
+                continue;
+            }
+            
+            $data[$attributeCode] = [];
+            foreach ($attributeValues as $value) {
+                if ($attribute && $attribute->getBackendType() == 'decimal') {
+                    $data[$attributeCode][] = str_replace('_', '-', $value);
+                    continue;
+                }
+                $data[$attributeCode][] = $value;
+            }
+        }
+
+        if (isset($data['price'])) {
+            unset($data['price']);
+        }
+
+        ksort($data);
+
+        $_values =  [];
+        foreach ($data as $code => $value) {
+            foreach ($value as $label) {
+                $_values[] = ucwords($label);
+            }
+        }
+        
+        return $_values;
     }
 
     /**
@@ -258,5 +318,32 @@ class Hydrator
             \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
             $this->storeManager->getStore()->getId()
         );
+    }
+
+    /**
+     * Get store name
+     */
+    public function getStoreName()
+    {
+        return $this->scopeConfig->getValue(
+            'general/store_information/name',
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+        );
+    }
+
+    /**
+     * Generate Title with Filters Value
+     */
+    public function getCustomPageTitle($filtersValues, $category, $suffix = true)
+    {
+        $valuesLabels = $this->extractValues($filtersValues);
+        if (!empty($valuesLabels)) {
+            $labels = implode(" ", $valuesLabels);
+            $categoryTitle = $category->getMetaTitle() ? $category->getMetaTitle() : $category->getName();
+            $suffixStore = $this->getStoreName() && $suffix === true ? self::SEO_TITLE_SUFFIX_SEPARATOR . $this->getStoreName() : "";
+
+            return $categoryTitle . ' ' . $labels . $suffixStore;
+        }
+        return false;
     }
 }
