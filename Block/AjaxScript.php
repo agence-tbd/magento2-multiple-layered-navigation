@@ -19,7 +19,7 @@ class AjaxScript extends Template
     {
         $config = [
             'disabled'          => !$this->getIsAjax(),
-            'filtersContainer'  => '#layered-filter-block',
+            'filtersContainer'  => '.block.filter',
             'productsContainer' => '.' . \Niks\LayeredNavigation\Plugin\CategoryViewBlock::PRODUCT_LIST_WRAPPER
         ];
         return json_encode($config);
