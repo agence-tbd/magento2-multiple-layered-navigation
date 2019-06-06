@@ -9,7 +9,7 @@ define([
             }
             this._initState();
             var self = this;
-            $('#layered-filter-block, .pages-items').off('click', 'a').on('click', 'a', function (e) {
+            $('.block.filter, .pages-items').off('click', 'a').on('click', 'a', function (e) {
                 e.preventDefault();
                 var url = $(this).attr('href');
                 if (url) {
